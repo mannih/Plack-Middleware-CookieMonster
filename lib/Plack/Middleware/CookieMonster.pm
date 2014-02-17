@@ -5,6 +5,7 @@ use warnings;
 use parent qw/ Plack::Middleware /;
 
 use Plack::Util::Accessor qw( cookie_names );
+use Plack::Request;
 
 
 sub call {
@@ -13,17 +14,26 @@ sub call {
     my $res = $self->app->( $env );
 
     if ( $res->[ 0 ] == 500 && $env->{ 'plack.stacktrace.html' } ) {
-        my $cookie_names = $self->cookie_names;
-        if ( ! defined $cookie_names ) {
-            die "When enabling Plack::Middleware::CookieClearer you *have* to provide a 'cookie_names' argument!";
-        }
-
-        foreach my $cookie ( @{ $self->cookie_names } ) {
-            push @{ $res->[ 1 ] }, 'Set-Cookie', sprintf '%s=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT', $cookie;
+        my @cookies = $self->_get_cookie_names( $env );
+        foreach my $cookie ( @cookies ) {
+            push @{ $res->[ 1 ] }, 'Set-Cookie', sprintf '%s=deleted; Expires=Thu, 01-May-1971 04:30:01 GMT', $cookie;
         }
     }
 
     return $res;
+}
+
+sub _get_cookie_names {
+    my ( $self, $env ) = @_;
+
+    my $sent = Plack::Request->new( $env )->cookies;
+
+    if ( my $cookie_names = $self->cookie_names ) {
+        return @{ $cookie_names };
+    }
+    else {
+        return keys %{ $sent };
+    }
 }
 
 1;
