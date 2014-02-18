@@ -93,7 +93,7 @@ sub test_stacktrace_no_param {
         my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567' );
         is $res->code, 500, 'response status 500';
         is $res->header( 'Set-Cookie' ),
-                'sessionid=deleted; Expires=Thu, 01-May-1971 04:30:01 GMT',
+                'sessionid=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT',
                 'cookie deleted';
     };
 }
@@ -110,6 +110,13 @@ sub test_stacktrace_with_param {
         my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567' );
         is $res->code, 500, 'response status 500';
         is $res->header( 'Set-Cookie' ), undef, 'no cookie';
+    };
+
+    test_psgi $app, sub {
+        my $cb  = shift;
+        my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567; sid=112233' );
+        is $res->code, 500, 'response status 500';
+        is $res->header( 'Set-Cookie' ), 'sid=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT', 'configured cookie gets expired';
     };
 }
 

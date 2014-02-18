@@ -2,6 +2,9 @@ package Plack::Middleware::CookieMonster;
 use strict;
 use warnings;
 
+our $VERSION = '0.01';
+$VERSION = eval $VERSION;
+
 use parent qw/ Plack::Middleware /;
 
 use Plack::Util::Accessor qw( cookie_names );
@@ -16,7 +19,7 @@ sub call {
     if ( $res->[ 0 ] == 500 && $env->{ 'plack.stacktrace.html' } ) {
         my @cookies = $self->_get_cookie_names( $env );
         foreach my $cookie ( @cookies ) {
-            push @{ $res->[ 1 ] }, 'Set-Cookie', sprintf '%s=deleted; Expires=Thu, 01-May-1971 04:30:01 GMT', $cookie;
+            push @{ $res->[ 1 ] }, 'Set-Cookie', sprintf '%s=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT', $cookie;
         }
     }
 
@@ -83,6 +86,11 @@ Manni Heumann
 =head1 SEE ALSO
 
 L<Plack::Middleware::StackTrace>
+
+=head1 LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
 
 =cut
 
