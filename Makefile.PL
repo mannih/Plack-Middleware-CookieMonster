@@ -9,7 +9,7 @@ repository 'http://github.com/mannih/Plack-Middleware-CookieMonster.git';
 
 requires 'Plack';
 test_requires 'Test::Most';
-
+test_requires 'HTTP::Request::Common';
 
 auto_install;
 WriteAll;
