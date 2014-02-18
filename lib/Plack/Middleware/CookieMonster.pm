@@ -29,10 +29,10 @@ sub _get_cookie_names {
     my $sent = Plack::Request->new( $env )->cookies;
 
     if ( my $cookie_names = $self->cookie_names ) {
-        return @{ $cookie_names };
+        return grep { $sent->{ $_ } } @$cookie_names;
     }
     else {
-        return keys %{ $sent };
+        return keys %$sent;
     }
 }
 
@@ -46,7 +46,14 @@ Plack::Middleware::CookieMonster - Eats all your (session) cookies in case Plack
 
 =head1 SYNOPSIS
 
- enable CookieMonster => cookies_names => [ 'session_cookie', 'foobar_cookie' ];
+ # Only expire selected cookies
+ enable 'CookieMonster', cookies_names => [ 'session_cookie', 'foobar_cookie' ];
+ enable 'StackTrace';
+
+
+ # Expire all cookies the browser sent
+ enable 'CookieMonster';
+ enable 'StackTrace';
 
 =head1 DESCRIPTION
 
@@ -56,6 +63,10 @@ your webapp is borked. Your app would usually clear any session cookies in that
 case, but since Plack::Middleware::StackTrace will simply throw away any HTTP
 headers you set, you'll be stuck to that session.
 
+C<Plack::Middleware::CookieMonster> will detect that C<Plack::Middleware::StackTrace>
+rendered a stack trace and will add C<Set-Cookie> headers to the response so that
+the cookies you configured or all cookies that the browser sent will be expired.
+
 This middleware was written because I was too lazy to search the "clear cookies"
 control in my browser and because I think we should automate as much as possible.
 
@@ -64,6 +75,10 @@ control in my browser and because I think we should automate as much as possible
 You can provide a C<cookie_names> parameter, pointing to an array-ref containing
 the names of all the cookies you want to clear. Otherwise, all cookies the browser
 sent will be expired.
+
+=head1 AUTHOR
+
+Manni Heumann
 
 =head1 SEE ALSO
 
