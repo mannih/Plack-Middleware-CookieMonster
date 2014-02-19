@@ -2,7 +2,7 @@ package Plack::Middleware::CookieMonster;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 use parent qw/ Plack::Middleware /;
@@ -16,7 +16,7 @@ sub call {
 
     my $res = $self->app->( $env );
 
-    if ( $res->[ 0 ] == 500 && $env->{ 'plack.stacktrace.html' } ) {
+    if ( $env->{ 'plack.stacktrace.html' } && $res->[ 0 ] == 500 ) {
         my @cookies = $self->_get_cookie_names( $env );
         foreach my $cookie ( @cookies ) {
             push @{ $res->[ 1 ] }, 'Set-Cookie', sprintf '%s=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT', $cookie;

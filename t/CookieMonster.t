@@ -53,32 +53,53 @@ sub test__get_cookie_names {
 }
 
 sub _get_app {
-    my $app = sub {
+    return sub {
         my $env = shift;
-        if ( $env->{ PATH_INFO } eq '/nocrash' ) {
-            return [
-                200, [ 'Content-Type' => 'text/html', 'Set-Cookie', 'sessionid=2345678' ],
-                ['<body>Hello World</body>']
-            ];
-        }
-        else {
+        if ( $env->{ PATH_INFO } ne '/nocrash' ) {
             die 'oopsie';
         }
+
+        return [
+            200, [ 'Content-Type' => 'text/html', 'Set-Cookie', 'sessionid=2345678' ],
+            ['<body>Hello World</body>']
+        ];
+    };
+}
+
+sub _get_streaming_app {
+    return sub {
+        my $env = shift;
+
+        return sub {
+            my $respond = shift;
+            if ( $env->{ PATH_INFO } ne '/nocrash' ) {
+                eval { require DooBar };
+            }
+            $respond->(
+                [
+                    200,
+                    [ 'Content-Type' => 'text/html', 'Set-Cookie', 'sessionid=2345678' ],
+                    [ '<body>Hello World</body>' ]
+                ]
+            );
+        };
     };
 }
 
 sub test_no_stacktrace {
-    my $app = builder {
-        enable 'StackTrace';
-        _get_app;
-    };
+    foreach my $inner_app ( _get_app, _get_streaming_app ) {
+        my $app = builder {
+            enable 'StackTrace';
+            $inner_app;
+        };
 
-    test_psgi $app, sub {
-        my $cb  = shift;
-        my $res = $cb->( GET '/nocrash', 'Cookie' => 'sessionid=1234567' );
-        is $res->code, 200, 'response status 200';
-        is $res->header( 'Set-Cookie' ), 'sessionid=2345678', 'app sets a cookie';
-    };
+        test_psgi $app, sub {
+            my $cb  = shift;
+            my $res = $cb->( GET '/nocrash', 'Cookie' => 'sessionid=1234567' );
+            is $res->code, 200, 'response status 200';
+            is $res->header( 'Set-Cookie' ), 'sessionid=2345678', 'app sets a cookie';
+        };
+    }
 }
 
 sub test_stacktrace_no_param {
@@ -92,9 +113,10 @@ sub test_stacktrace_no_param {
         my $cb  = shift;
         my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567' );
         is $res->code, 500, 'response status 500';
-        is $res->header( 'Set-Cookie' ),
-                'sessionid=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT',
-                'cookie deleted';
+        is
+            $res->header( 'Set-Cookie' ),
+            'sessionid=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT',
+            'cookie deleted';
     };
 }
 
