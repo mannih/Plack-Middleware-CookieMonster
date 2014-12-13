@@ -10,7 +10,9 @@ BEGIN {
 test__get_cookie_names();
 test_no_stacktrace();
 test_stacktrace_no_param();
-test_stacktrace_with_param();
+test_stacktrace_with_names();
+test_stacktrace_with_names_and_path();
+test_stacktrace_with_path();
 
 done_testing;
 
@@ -120,7 +122,7 @@ sub test_stacktrace_no_param {
     };
 }
 
-sub test_stacktrace_with_param {
+sub test_stacktrace_with_names {
     my $app = builder {
         enable 'CookieMonster', cookie_names => [ 'sid' ];
         enable 'StackTrace', force => 1, no_print_errors => 1;
@@ -139,6 +141,37 @@ sub test_stacktrace_with_param {
         my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567; sid=112233' );
         is $res->code, 500, 'response status 500';
         is $res->header( 'Set-Cookie' ), 'sid=deleted; Expires=Sat, 01-May-1971 04:30:01 GMT', 'configured cookie gets expired';
+    };
+}
+
+sub test_stacktrace_with_names_and_path {
+    my $app = builder {
+        enable 'CookieMonster', path => '/some/path', cookie_names => [ 'sid' ];
+        enable 'StackTrace', force => 1, no_print_errors => 1;
+        _get_app;
+    };
+
+    test_psgi $app, sub {
+        my $cb  = shift;
+        my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567; sid=112233' );
+        is $res->code, 500, 'response status 500';
+        is $res->header( 'Set-Cookie' ), 'sid=deleted; path=/some/path; Expires=Sat, 01-May-1971 04:30:01 GMT', 'configured cookie gets expired';
+    };
+}
+
+sub test_stacktrace_with_path {
+    my $app = builder {
+        enable 'CookieMonster', path => '/some/path';
+        enable 'StackTrace', force => 1, no_print_errors => 1;
+        _get_app;
+    };
+
+    test_psgi $app, sub {
+        my $cb  = shift;
+        my $res = $cb->( GET '/', 'Cookie' => 'sessionid=1234567; sid=112233' );
+        is $res->code, 500, 'response status 500';
+        like $res->header( 'Set-Cookie' ), qr'sid=deleted; path=/some/path; Expires=Sat, 01-May-1971 04:30:01 GMT', 'sent cookie gets expired';
+        like $res->header( 'Set-Cookie' ), qr'sessionid=deleted; path=/some/path; Expires=Sat, 01-May-1971 04:30:01 GMT', 'sent cookie gets expired';
     };
 }
 
